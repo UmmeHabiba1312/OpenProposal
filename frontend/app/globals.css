@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  ::selection {
+    background: #d9a441;
+    color: #12141a;
+  }
+
+  * {
+    scrollbar-color: #3f5e53 #12141a;
+  }
+}
+
+@layer utilities {
+  .seal {
+    background: radial-gradient(circle at 35% 30%, #d3653f, #a5401f 70%);
+    box-shadow:
+      0 0 0 3px rgba(217, 164, 65, 0.15),
+      inset 0 2px 4px rgba(0, 0, 0, 0.35),
+      0 6px 18px rgba(0, 0, 0, 0.4);
+  }
+
+  .paper-grain {
+    background-image: radial-gradient(rgba(18, 20, 26, 0.035) 1px, transparent 1px);
+    background-size: 3px 3px;
+  }
+
+  @keyframes crack-in {
+    0% {
+      opacity: 0;
+      transform: scale(0.9) rotate(-2deg);
+    }
+    60% {
+      opacity: 1;
+      transform: scale(1.02) rotate(0.5deg);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) rotate(0deg);
+    }
+  }
+
+  .animate-crack-in {
+    animation: crack-in 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-crack-in {
+      animation: none;
+    }
+  }
+}
