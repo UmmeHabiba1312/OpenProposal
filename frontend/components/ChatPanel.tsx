@@ -3,7 +3,7 @@
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import Rulebook from "./Rulebook";
-
+import Link from "next/link";
 type Msg = { role: "user" | "assistant"; content: string };
 
 export default function ChatPanel({
@@ -86,18 +86,23 @@ export default function ChatPanel({
   return (
     <div className="flex flex-col h-screen">
       <header className="flex items-center justify-between px-6 py-4 border-b border-paper/10">
-        <p className="text-paper/40 text-sm">
-          {isEmpty
-            ? "Paste a job description to get started"
-            : "Ask for changes below, or start a new chat for a different job"}
-        </p>
-        <button
-          onClick={() => setShowRules(true)}
-          className="text-xs text-gold/80 hover:text-gold font-mono shrink-0"
-        >
-          Rules it follows
-        </button>
-      </header>
+  <p className="text-paper/40 text-sm">
+    {isEmpty
+      ? "Paste a job description to get started"
+      : "Ask for changes below, or start a new chat for a different job"}
+  </p>
+  <div className="flex items-center gap-4 shrink-0">
+    <Link href="/onboarding" className="text-xs text-paper/40 hover:text-paper font-mono">
+      Edit profile
+    </Link>
+    <button
+      onClick={() => setShowRules(true)}
+      className="text-xs text-gold/80 hover:text-gold font-mono"
+    >
+      Rules it follows
+    </button>
+  </div>
+</header>
 
       <div className="flex-1 overflow-y-auto px-6 py-8">
         {isEmpty && !loading && (

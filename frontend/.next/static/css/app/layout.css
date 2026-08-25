@@ -1044,6 +1044,9 @@ video {
 .mb-8 {
   margin-bottom: 2rem;
 }
+.mt-1\.5 {
+  margin-top: 0.375rem;
+}
 .mt-4 {
   margin-top: 1rem;
 }
@@ -1306,6 +1309,9 @@ video {
 }
 .pb-2 {
   padding-bottom: 0.5rem;
+}
+.pt-1 {
+  padding-top: 0.25rem;
 }
 .text-left {
   text-align: left;

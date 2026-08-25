@@ -47,6 +47,8 @@ class ProfileIn(BaseModel):
     skills: Optional[str] = None
     bio: str = Field(..., min_length=10)
     portfolio_links: Optional[str] = None
+    proof_story: Optional[str] = None
+    hourly_rate: Optional[str] = None
     default_platform: Optional[str] = "Upwork"
     default_tone: Optional[str] = None
 
@@ -57,5 +59,7 @@ class ProfileOut(BaseModel):
     skills: Optional[str] = None
     bio: Optional[str] = None
     portfolio_links: Optional[str] = None
+    proof_story: Optional[str] = None
+    hourly_rate: Optional[str] = None
     default_platform: Optional[str] = None
     default_tone: Optional[str] = None

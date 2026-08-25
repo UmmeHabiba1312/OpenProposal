@@ -25,6 +25,8 @@ saveProfile: async (payload: {
   skills?: string;
   bio: string;
   portfolio_links?: string;
+  proof_story?: string;
+  hourly_rate?: string;
   default_platform?: string;
   default_tone?: string;
 }) =>

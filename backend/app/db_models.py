@@ -34,11 +34,13 @@ class Message(Base):
 class Profile(Base):
     __tablename__ = "profiles"
 
-    user_id = Column(String, primary_key=True)  # Better Auth's user.id
+    user_id = Column(String, primary_key=True)
     title = Column(String, nullable=True)
     skills = Column(String, nullable=True)
     bio = Column(Text, nullable=True)
     portfolio_links = Column(Text, nullable=True)
+    proof_story = Column(Text, nullable=True)  
+    hourly_rate = Column(String, nullable=True)
     default_platform = Column(String, default="Upwork")
     default_tone = Column(String, nullable=True)
     updated_at = Column(
