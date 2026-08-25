@@ -48,6 +48,11 @@ export default function ChatPanel({
     const text = input.trim();
     const isFirstMessage = !conversationId && messages.length === 0;
 
+    if (isFirstMessage && text.length < 10) {
+    setError("Please paste the full job description (at least 10 characters).");
+    return;
+  }
+
     setInput("");
     setError("");
     setMessages((m) => [...m, { role: "user", content: text }]);
@@ -82,6 +87,7 @@ export default function ChatPanel({
   }
 
   const isEmpty = messages.length === 0;
+
 
   return (
     <div className="flex flex-col h-screen">
