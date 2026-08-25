@@ -75,7 +75,7 @@ useEffect(() => {
         onSelect={setActiveId}
         onNewChat={() => setActiveId(null)}
         onDelete={handleDelete}
-        user={user}
+        user={{ ...user, id: Number(user.id) }} 
         onLogout={logout}
       />
       <div className="flex-1 min-w-0">
