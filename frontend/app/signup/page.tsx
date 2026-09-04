@@ -3,32 +3,48 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../providers";
+import { authClient } from "@/lib/auth-client";
+import PasswordInput from "@/components/PasswordInput";
+import { getPasswordChecks, getPasswordStrength } from "@/lib/password";
 
 export default function SignupPage() {
-  const { signup } = useAuth();
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [touched, setTouched] = useState(false);
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      await signup(email, password, name || undefined);
-      // Signup success hotay hi router.push aur refresh triggers hongay
-      router.push("/"); // Ya jo bhi aapka route hai, e.g., "/dashboard"
-      router.refresh();
-    } catch (err: any) {
-      setError(err.message || "Signup failed.");
-    } finally {
-      setLoading(false);
-    }
+  const checks = getPasswordChecks(password);
+  const strength = getPasswordStrength(password);
+  const meetsMinimum = checks[0].passed; // at least 8 characters — the only hard requirement
+
+ async function handleSubmit(e: FormEvent) {
+  e.preventDefault();
+  setTouched(true);
+  setError("");
+
+  if (!meetsMinimum) {
+    setError("Password must be at least 8 characters.");
+    return;
   }
+
+  setLoading(true);
+  const { error } = await authClient.signUp.email({
+    email,
+    password,
+    name: name.trim() || email.split("@")[0], // fallback to email prefix if name left blank
+  });
+
+  if (error) {
+    setError(error.message || "Signup failed.");
+    setLoading(false);
+    return;
+  }
+
+  router.push("/");
+}
 
   return (
     <main className="min-h-screen flex items-center justify-center px-6">
@@ -46,6 +62,7 @@ export default function SignupPage() {
             placeholder="Name (optional)"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            autoComplete="name"
             className="w-full rounded-lg bg-paper/[0.06] border border-paper/15 px-4 py-3 text-sm placeholder:text-paper/30 focus:outline-none focus:border-gold/70 focus:ring-1 focus:ring-gold/40"
           />
           <input
@@ -54,17 +71,55 @@ export default function SignupPage() {
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
             className="w-full rounded-lg bg-paper/[0.06] border border-paper/15 px-4 py-3 text-sm placeholder:text-paper/30 focus:outline-none focus:border-gold/70 focus:ring-1 focus:ring-gold/40"
           />
-          <input
-            type="password"
-            required
-            minLength={6}
-            placeholder="Password (min. 6 characters)"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg bg-paper/[0.06] border border-paper/15 px-4 py-3 text-sm placeholder:text-paper/30 focus:outline-none focus:border-gold/70 focus:ring-1 focus:ring-gold/40"
-          />
+
+          <div>
+            <PasswordInput
+              value={password}
+              onChange={(v) => {
+                setPassword(v);
+                setTouched(true);
+              }}
+              placeholder="Password"
+              autoComplete="new-password"
+            />
+
+            {/* Strength bar */}
+            {password.length > 0 && (
+              <div className="mt-2">
+                <div className="flex gap-1">
+                  {[0, 1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className={`h-1 flex-1 rounded-full transition-colors ${
+                        i < strength.score ? strength.color : "bg-paper/10"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <p className="text-xs text-paper/40 mt-1">{strength.label}</p>
+              </div>
+            )}
+
+            {/* Requirements checklist */}
+            {touched && (
+              <ul className="mt-2 space-y-1">
+                {checks.map((c) => (
+                  <li
+                    key={c.label}
+                    className={`text-xs flex items-center gap-1.5 ${
+                      c.passed ? "text-moss" : "text-paper/35"
+                    }`}
+                  >
+                    <span>{c.passed ? "✓" : "○"}</span>
+                    {c.label}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
 
           {error && <p className="text-seal text-sm">{error}</p>}
 
