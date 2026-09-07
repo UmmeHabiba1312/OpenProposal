@@ -76,7 +76,7 @@ export default function Sidebar({
       </div>
 
       <div className="p-3 border-t border-paper/10 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-seal/90 border border-moss/30 flex items-center justify-center text-moss text-xs font-medium shrink-0">
+        <div className="w-8 h-8 rounded-full bg-[#d9a441] border border-moss/30 flex items-center justify-center text-gray-50 text-xs font-medium shrink-0">
           {initials(user?.name || user?.email || "?")}
         </div>
         <span className="flex-1 text-sm text-paper/60 truncate">
