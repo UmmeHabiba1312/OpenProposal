@@ -26,7 +26,7 @@ export default function ChatPanel({
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
+  useEffect(() => {8
     if (conversationId) {
       api
         .getConversation(conversationId)
