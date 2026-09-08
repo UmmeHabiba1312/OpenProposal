@@ -43,23 +43,27 @@ class ConversationDetail(BaseModel):
 
 
 class ProfileIn(BaseModel):
+    name: str = Field(..., min_length=1)   
     title: Optional[str] = None
     skills: Optional[str] = None
     bio: str = Field(..., min_length=10)
     portfolio_links: Optional[str] = None
     proof_story: Optional[str] = None
     hourly_rate: Optional[str] = None
+    availability: Optional[str] = None
     default_platform: Optional[str] = "Upwork"
     default_tone: Optional[str] = None
 
 
 class ProfileOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
+    name: Optional[str] = None
     title: Optional[str] = None
     skills: Optional[str] = None
     bio: Optional[str] = None
     portfolio_links: Optional[str] = None
     proof_story: Optional[str] = None
     hourly_rate: Optional[str] = None
+    availability: Optional[str] = None
     default_platform: Optional[str] = None
     default_tone: Optional[str] = None
