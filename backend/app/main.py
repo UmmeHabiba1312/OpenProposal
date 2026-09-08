@@ -224,12 +224,14 @@ def upsert_profile(
         profile = Profile(user_id=user.id)
         db.add(profile)
 
+    profile.name = req.name
     profile.title = req.title
     profile.skills = req.skills
     profile.bio = req.bio
     profile.portfolio_links = req.portfolio_links
     profile.proof_story = req.proof_story
     profile.hourly_rate = req.hourly_rate
+    profile.availability = req.availability
     profile.default_platform = req.default_platform or "Upwork"
     profile.default_tone = req.default_tone
 
@@ -277,21 +279,6 @@ def _make_title(text: str, limit: int = 60) -> str:
     text = " ".join(text.strip().split())
     return text[:limit] + "…" if len(text) > limit else (text or "New proposal")
 
-
-# def _profile_to_prompt_text(profile: Optional[Profile]) -> Optional[str]:
-#     if not profile:
-#         return None
-#     parts = []
-#     if profile.title:
-#         parts.append(f"Title: {profile.title}")
-#     if profile.skills:
-#         parts.append(f"Skills: {profile.skills}")
-#     if profile.bio:
-#         parts.append(profile.bio)
-#     if profile.portfolio_links:
-#         parts.append(f"Portfolio/demo links: {profile.portfolio_links}")
-#     return "\n".join(parts) if parts else None
-
 def _profile_to_prompt_text(profile: Optional[Profile]) -> Optional[str]:
     if not profile:
         return None
@@ -303,11 +290,13 @@ def _profile_to_prompt_text(profile: Optional[Profile]) -> Optional[str]:
     if profile.bio:
         parts.append(profile.bio)
     if profile.proof_story:
-        parts.append(f"A real project example (what was built, what broke, how it was fixed): {profile.proof_story}")
+        parts.append(f"A real project example: {profile.proof_story}")
     if profile.portfolio_links:
         parts.append(f"Portfolio/demo links: {profile.portfolio_links}")
     if profile.hourly_rate:
         parts.append(f"Typical rate: {profile.hourly_rate}")
+    if profile.availability:
+        parts.append(f"Availability: {profile.availability}")
     return "\n".join(parts) if parts else None
 
 @app.post("/api/generate", response_model=ProposalResponse)
