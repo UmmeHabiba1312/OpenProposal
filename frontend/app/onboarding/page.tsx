@@ -13,6 +13,8 @@ export default function OnboardingPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
+  const [name, setName] = useState("");
+  const [availability, setAvailability] = useState("");
   const [step, setStep] = useState(0);
   const [title, setTitle] = useState("");
   const [skills, setSkills] = useState("");
@@ -39,6 +41,8 @@ export default function OnboardingPage() {
       .then((p) => {
         if (p) {
           setIsEditing(true);
+          setName(p.name || "");
+          setAvailability(p.availability || "");
           setTitle(p.title || "");
           setSkills(p.skills || "");
           setBio(p.bio || "");
@@ -53,6 +57,9 @@ export default function OnboardingPage() {
   }, [user]);
 
   function validateStep(s: number): string {
+    if (s === 0 && !name.trim()) {
+      return "Add your name — it's used to sign off your proposals.";
+    }
     if (s === 1 && bio.trim().length < 10) {
       return "Add a bit more to your bio — this is what every proposal draws its proof from.";
     }
@@ -76,9 +83,15 @@ export default function OnboardingPage() {
 
   async function handleSave(e: FormEvent) {
     e.preventDefault();
-    const err = validateStep(1);
-    if (err) {
-      setError(err);
+    const nameErr = validateStep(0);
+    if (nameErr) {
+      setError(nameErr);
+      setStep(0);
+      return;
+    }
+    const bioErr = validateStep(1);
+    if (bioErr) {
+      setError(bioErr);
       setStep(1);
       return;
     }
@@ -86,12 +99,14 @@ export default function OnboardingPage() {
     setError("");
     try {
       await api.saveProfile({
+        name,
         title: title || undefined,
         skills: skills || undefined,
         bio,
         portfolio_links: portfolioLinks || undefined,
         proof_story: proofStory || undefined,
         hourly_rate: hourlyRate || undefined,
+        availability: availability || undefined,
         default_platform: platform,
         default_tone: tone || undefined,
       });
@@ -156,6 +171,22 @@ export default function OnboardingPage() {
           {/* Step 0 — About you */}
           {step === 0 && (
             <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-paper/70 mb-2">
+                  Your name <span className="text-seal">*</span>
+                </label>
+                <input
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Ayesha Khan"
+                  className={inputClass}
+                />
+                <p className="text-paper/30 text-xs mt-1.5">
+                  Used to sign off your proposals — not shown as a credential.
+                </p>
+              </div>
+
               <div>
                 <label className="block text-sm text-paper/70 mb-2">
                   Title / role <span className="text-paper/40">(optional)</span>
@@ -269,6 +300,18 @@ export default function OnboardingPage() {
 
               <div>
                 <label className="block text-sm text-paper/70 mb-2">
+                  Availability <span className="text-paper/40">(optional)</span>
+                </label>
+                <input
+                  value={availability}
+                  onChange={(e) => setAvailability(e.target.value)}
+                  placeholder="e.g. Available immediately, 20 hrs/week"
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-paper/70 mb-2">
                   Default tone <span className="text-paper/40">(optional)</span>
                 </label>
                 <input
@@ -293,12 +336,9 @@ export default function OnboardingPage() {
                 good?
               </p>
 
+              <ReviewRow label="Name" value={name} onEdit={() => setStep(0)} />
               <ReviewRow label="Title" value={title} onEdit={() => setStep(0)} />
-              <ReviewRow
-                label="Skills"
-                value={skills}
-                onEdit={() => setStep(0)}
-              />
+              <ReviewRow label="Skills" value={skills} onEdit={() => setStep(0)} />
               <ReviewRow label="Bio" value={bio} onEdit={() => setStep(1)} multiline />
               <ReviewRow
                 label="Project story"
@@ -317,6 +357,7 @@ export default function OnboardingPage() {
                 value={[platform, hourlyRate].filter(Boolean).join(" · ")}
                 onEdit={() => setStep(2)}
               />
+              <ReviewRow label="Availability" value={availability} onEdit={() => setStep(2)} />
               <ReviewRow label="Tone" value={tone} onEdit={() => setStep(2)} />
             </div>
           )}

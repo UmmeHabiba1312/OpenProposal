@@ -21,12 +21,14 @@ export const api = {
   fetch(`${API_URL}/api/profile`, { headers: await authHeaders() }).then(handle),
 
 saveProfile: async (payload: {
+  name: string;
   title?: string;
   skills?: string;
   bio: string;
   portfolio_links?: string;
   proof_story?: string;
   hourly_rate?: string;
+  availability?: string;
   default_platform?: string;
   default_tone?: string;
 }) =>
