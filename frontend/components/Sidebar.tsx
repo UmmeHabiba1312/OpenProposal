@@ -1,7 +1,9 @@
 "use client";
 
-type Conversation = { id: number; title: string; created_at: string };
-type UserT = { id: number; email: string; name?: string | null } | null;
+import { useState } from "react";
+
+type Conversation = { id: number; title: string; pinned: boolean; created_at: string };
+type UserT = { id: string; email: string; name?: string | null } | null;
 
 function initials(nameOrEmail: string) {
   const base = nameOrEmail.split("@")[0];
@@ -12,18 +14,23 @@ function initials(nameOrEmail: string) {
 
 function groupByRecency(conversations: Conversation[]) {
   const now = new Date();
+  const pinned: Conversation[] = [];
   const today: Conversation[] = [];
   const week: Conversation[] = [];
   const older: Conversation[] = [];
 
   for (const c of conversations) {
+    if (c.pinned) {
+      pinned.push(c);
+      continue;
+    }
     const d = new Date(c.created_at);
     const diffDays = (now.getTime() - d.getTime()) / 86400000;
     if (diffDays < 1) today.push(c);
     else if (diffDays < 7) week.push(c);
     else older.push(c);
   }
-  return { today, week, older };
+  return { pinned, today, week, older };
 }
 
 export default function Sidebar({
@@ -32,6 +39,8 @@ export default function Sidebar({
   onSelect,
   onNewChat,
   onDelete,
+  onRename,
+  onTogglePin,
   user,
   onLogout,
 }: {
@@ -40,10 +49,12 @@ export default function Sidebar({
   onSelect: (id: number) => void;
   onNewChat: () => void;
   onDelete: (id: number) => void;
+  onRename: (id: number, title: string) => void;
+  onTogglePin: (id: number, pinned: boolean) => void;
   user: UserT;
   onLogout: () => void;
 }) {
-  const { today, week, older } = groupByRecency(conversations);
+  const { pinned, today, week, older } = groupByRecency(conversations);
 
   return (
     <aside className="w-72 shrink-0 border-r border-paper/10 flex flex-col h-screen sticky top-0 bg-ink">
@@ -70,13 +81,14 @@ export default function Sidebar({
           </p>
         )}
 
-        <ConversationGroup label="Today" items={today} activeId={activeId} onSelect={onSelect} onDelete={onDelete} />
-        <ConversationGroup label="This week" items={week} activeId={activeId} onSelect={onSelect} onDelete={onDelete} />
-        <ConversationGroup label="Older" items={older} activeId={activeId} onSelect={onSelect} onDelete={onDelete} />
+        <ConversationGroup label="Pinned" items={pinned} activeId={activeId} onSelect={onSelect} onDelete={onDelete} onRename={onRename} onTogglePin={onTogglePin} />
+        <ConversationGroup label="Today" items={today} activeId={activeId} onSelect={onSelect} onDelete={onDelete} onRename={onRename} onTogglePin={onTogglePin} />
+        <ConversationGroup label="This week" items={week} activeId={activeId} onSelect={onSelect} onDelete={onDelete} onRename={onRename} onTogglePin={onTogglePin} />
+        <ConversationGroup label="Older" items={older} activeId={activeId} onSelect={onSelect} onDelete={onDelete} onRename={onRename} onTogglePin={onTogglePin} />
       </div>
 
       <div className="p-3 border-t border-paper/10 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-[#d9a441] border border-moss/30 flex items-center justify-center text-gray-50 text-xs font-medium shrink-0">
+        <div className="w-8 h-8 rounded-full bg-[#d9a441] border border-moss/30 flex items-center justify-center text-moss text-xs font-medium shrink-0">
           {initials(user?.name || user?.email || "?")}
         </div>
         <span className="flex-1 text-sm text-paper/60 truncate">
@@ -104,14 +116,35 @@ function ConversationGroup({
   activeId,
   onSelect,
   onDelete,
+  onRename,
+  onTogglePin,
 }: {
   label: string;
   items: Conversation[];
   activeId: number | null;
   onSelect: (id: number) => void;
   onDelete: (id: number) => void;
+  onRename: (id: number, title: string) => void;
+  onTogglePin: (id: number, pinned: boolean) => void;
 }) {
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [draft, setDraft] = useState("");
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+
   if (items.length === 0) return null;
+
+  function startRename(c: Conversation) {
+    setEditingId(c.id);
+    setDraft(c.title);
+    setOpenMenuId(null);
+  }
+
+  function commitRename(id: number) {
+    const trimmed = draft.trim();
+    if (trimmed) onRename(id, trimmed);
+    setEditingId(null);
+  }
+
   return (
     <div className="mt-3 first:mt-0">
       <p className="text-paper/25 text-[11px] px-3 py-1.5">{label}</p>
@@ -119,25 +152,74 @@ function ConversationGroup({
         {items.map((c) => (
           <div
             key={c.id}
-            onClick={() => onSelect(c.id)}
-            className={`group flex items-center gap-2 rounded-lg px-3 py-2.5 cursor-pointer text-sm transition-colors ${
+            onClick={() => editingId !== c.id && onSelect(c.id)}
+            className={`group relative flex items-center gap-2 rounded-lg px-3 py-2.5 cursor-pointer text-sm transition-colors ${
               activeId === c.id ? "bg-paper/10 text-paper" : "text-paper/55 hover:bg-paper/5 hover:text-paper/80"
             }`}
           >
-            <span className="flex-1 truncate">{c.title || "New proposal"}</span>
+            {editingId === c.id ? (
+              <input
+                autoFocus
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") commitRename(c.id);
+                  if (e.key === "Escape") setEditingId(null);
+                }}
+                onBlur={() => commitRename(c.id)}
+                className="flex-1 bg-paper/10 rounded px-1.5 py-0.5 text-sm outline-none border border-gold/50"
+              />
+            ) : (
+              <span className="flex-1 truncate">{c.title || "New proposal"}</span>
+            )}
+
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onDelete(c.id);
+                setOpenMenuId(openMenuId === c.id ? null : c.id);
               }}
-              aria-label="Delete conversation"
-              className="opacity-0 group-hover:opacity-100 text-paper/30 hover:text-seal transition-all shrink-0"
+              aria-label="More options"
+              className="opacity-0 group-hover:opacity-100 text-paper/30 hover:text-paper transition-all shrink-0"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="3 6 5 6 21 6" />
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                <circle cx="12" cy="5" r="1.5" fill="currentColor" stroke="none" />
+                <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+                <circle cx="12" cy="19" r="1.5" fill="currentColor" stroke="none" />
               </svg>
             </button>
+
+            {openMenuId === c.id && (
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="absolute right-2 top-9 z-20 bg-ink border border-paper/15 rounded-lg shadow-xl py-1 w-36"
+              >
+                <button
+                  onClick={() => startRename(c)}
+                  className="w-full text-left px-3 py-1.5 text-xs text-paper/70 hover:bg-paper/5"
+                >
+                  Rename
+                </button>
+                <button
+                  onClick={() => {
+                    onTogglePin(c.id, !c.pinned);
+                    setOpenMenuId(null);
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-xs text-paper/70 hover:bg-paper/5"
+                >
+                  {c.pinned ? "Unpin" : "Pin"}
+                </button>
+                <button
+                  onClick={() => {
+                    onDelete(c.id);
+                    setOpenMenuId(null);
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-xs text-seal hover:bg-seal/10"
+                >
+                  Delete
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>

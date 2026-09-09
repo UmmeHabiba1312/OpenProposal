@@ -1,7 +1,8 @@
 import datetime
-from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey 
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Boolean
 from sqlalchemy.orm import relationship
 from app.database import Base
+
 
 
 
@@ -12,6 +13,7 @@ class Conversation(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(String, nullable=False, index=True)
     title = Column(String, default="New proposal")
+    pinned = Column(Boolean, default=False, nullable=False)  
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     messages = relationship(

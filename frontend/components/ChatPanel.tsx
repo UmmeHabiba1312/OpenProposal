@@ -7,6 +7,37 @@ import Rulebook from "./Rulebook";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
+function CopyButton({ text, className = "", dark = false }: { text: string; className?: string; dark?: boolean }) {
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+
+  return (
+    <button
+      onClick={handleCopy}
+      className={`opacity-0 group-hover:opacity-100 flex items-center gap-1 text-[11px] transition-opacity ${
+        dark ? "text-ink/40 hover:text-ink/70" : "text-paper/40 hover:text-paper/70"
+      } ${className}`}
+    >
+      {copied ? (
+        "Copied ✓"
+      ) : (
+        <>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          </svg>
+          Copy
+        </>
+      )}
+    </button>
+  );
+}
+
 export default function ChatPanel({
   conversationId,
   onConversationCreated,
@@ -26,7 +57,7 @@ export default function ChatPanel({
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {8
+  useEffect(() => {
     if (conversationId) {
       api
         .getConversation(conversationId)
@@ -43,7 +74,6 @@ export default function ChatPanel({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  // auto-grow the textarea as the person types
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
@@ -183,19 +213,21 @@ export default function ChatPanel({
           </div>
         )}
 
-        <div className="max-w-2xl mx-auto space-y-6">
+        <div className="max-w-2xl mx-auto space-y-9">
           {messages.map((m, i) => (
             <div key={i} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
               {m.role === "user" ? (
-                <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-paper/10 px-4 py-3 text-[15px] whitespace-pre-wrap">
+                <div className="group relative max-w-[80%] rounded-2xl rounded-tr-sm bg-paper/10 px-4 py-3 text-[15px] whitespace-pre-wrap">
                   {m.content}
+                  <CopyButton text={m.content} className="absolute -bottom-6 right-0" />
                 </div>
               ) : (
-                <div className="max-w-[85%] paper-grain bg-paper text-ink rounded-lg rounded-tl-sm px-5 py-4 shadow-xl relative">
+                <div className="group relative max-w-[85%] paper-grain bg-paper text-ink rounded-lg rounded-tl-sm px-5 py-4 shadow-xl">
                   <div className="absolute -top-2.5 -left-2.5 w-7 h-7 rounded-full seal flex items-center justify-center">
                     <span className="text-paper text-[9px] font-mono">OP</span>
                   </div>
                   <p className="whitespace-pre-wrap text-[15px] leading-relaxed">{m.content}</p>
+                  <CopyButton text={m.content} className="absolute -bottom-6 left-0" dark />
                 </div>
               )}
             </div>

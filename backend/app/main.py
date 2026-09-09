@@ -19,6 +19,7 @@ from app.schemas import (
     ProposalResponse,
     ConversationSummary,
     ConversationDetail,
+    ConversationUpdate,
     ProfileIn,
     ProfileOut,
 )
@@ -84,9 +85,34 @@ def list_conversations(user: CurrentUser = Depends(get_current_user), db: Sessio
     return (
         db.query(Conversation)
         .filter(Conversation.user_id == user.id)
-        .order_by(Conversation.created_at.desc())
+        .order_by(Conversation.pinned.desc(), Conversation.created_at.desc())
         .all()
     )
+
+
+@app.patch("/api/conversations/{conversation_id}", response_model=ConversationSummary)
+def update_conversation(
+    conversation_id: int,
+    req: ConversationUpdate,
+    user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    conv = (
+        db.query(Conversation)
+        .filter(Conversation.id == conversation_id, Conversation.user_id == user.id)
+        .first()
+    )
+    if not conv:
+        raise HTTPException(404, "Conversation not found.")
+
+    if req.title is not None:
+        conv.title = req.title.strip()
+    if req.pinned is not None:
+        conv.pinned = req.pinned
+
+    db.commit()
+    db.refresh(conv)
+    return conv
 
 
 @app.get("/api/conversations/{conversation_id}", response_model=ConversationDetail)
@@ -163,7 +189,6 @@ async def generate_proposal(
     db.add(Message(conversation_id=conv.id, role="user", content=req.job_description.strip()))
     db.commit()
 
-    # request values win if given; otherwise fall back to the saved profile
     freelancer_profile = req.freelancer_profile or _profile_to_prompt_text(profile)
     platform = req.platform or (profile.default_platform if profile else None) or "Upwork"
     tone = req.tone or (profile.default_tone if profile else None)

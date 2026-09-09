@@ -50,6 +50,13 @@ saveProfile: async (payload: {
       headers: await authHeaders(),
     }).then(handle),
 
+    updateConversation: async (id: number, payload: { title?: string; pinned?: boolean }) =>
+  fetch(`${API_URL}/api/conversations/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...(await authHeaders()) },
+    body: JSON.stringify(payload),
+  }).then(handle),
+  
   generate: async (payload: any) =>
     fetch(`${API_URL}/api/generate`, {
       method: "POST",

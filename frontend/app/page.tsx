@@ -7,7 +7,7 @@ import { api } from "@/lib/api";
 import Sidebar from "@/components/Sidebar";
 import ChatPanel from "@/components/ChatPanel";
 
-type Conversation = { id: number; title: string; created_at: string };
+type Conversation = { id: number; title: string; pinned: boolean; created_at: string };
 
 export default function Home() {
   const { user, loading, logout } = useAuth();
@@ -16,24 +16,19 @@ export default function Home() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
 
-
-  useEffect(() => {
-  if (!loading && !user) router.push("/login");
-}, [loading, user, router]);
-
-useEffect(() => {
-  if (!user) return;
-  api
-    .getProfile()
-    .then((p) => {
-      if (!p || !p.bio) router.push("/onboarding");
-    })
-    .catch(() => router.push("/onboarding"));
-}, [user]);
-
   useEffect(() => {
     if (!loading && !user) router.push("/login");
   }, [loading, user, router]);
+
+  useEffect(() => {
+    if (!user) return;
+    api
+      .getProfile()
+      .then((p) => {
+        if (!p || !p.bio) router.push("/onboarding");
+      })
+      .catch(() => router.push("/onboarding"));
+  }, [user]);
 
   useEffect(() => {
     if (user) refreshConversations();
@@ -50,6 +45,16 @@ useEffect(() => {
 
   function handleConversationCreated(id: number) {
     setActiveId(id);
+    refreshConversations();
+  }
+
+  async function handleRename(id: number, title: string) {
+    await api.updateConversation(id, { title });
+    refreshConversations();
+  }
+
+  async function handleTogglePin(id: number, pinned: boolean) {
+    await api.updateConversation(id, { pinned });
     refreshConversations();
   }
 
@@ -75,7 +80,9 @@ useEffect(() => {
         onSelect={setActiveId}
         onNewChat={() => setActiveId(null)}
         onDelete={handleDelete}
-        user={{ ...user, id: Number(user.id) }} 
+        onRename={handleRename}
+        onTogglePin={handleTogglePin}
+        user={user}
         onLogout={logout}
       />
       <div className="flex-1 min-w-0">

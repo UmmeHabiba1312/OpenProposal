@@ -25,7 +25,13 @@ class ConversationSummary(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     title: str
+    pinned: bool
     created_at: datetime.datetime
+
+
+class ConversationUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=100)
+    pinned: Optional[bool] = None
 
 
 class MessageOut(BaseModel):
