@@ -73,3 +73,16 @@ class ProfileOut(BaseModel):
     availability: Optional[str] = None
     default_platform: Optional[str] = None
     default_tone: Optional[str] = None
+
+class ApiConfigIn(BaseModel):
+    provider: str = Field(..., description="openai | anthropic | gemini | openrouter | deepseek | custom")
+    api_key: str = Field(..., min_length=1)
+    model: str = Field(..., min_length=1)
+    custom_base_url: Optional[str] = None
+
+
+class ApiConfigOut(BaseModel):
+    provider: Optional[str] = None
+    model: Optional[str] = None
+    custom_base_url: Optional[str] = None
+    has_key: bool = False 

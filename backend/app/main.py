@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session
 from agents import Runner
 
 from app.agent import build_proposal_agent
+from app.crypto import encrypt, decrypt
+from app.providers import PROVIDERS
 from app.database import Base, engine, get_db
 from app.db_models import Conversation, Message, Profile
 from app.auth import get_current_user, CurrentUser
@@ -22,11 +24,13 @@ from app.schemas import (
     ConversationUpdate,
     ProfileIn,
     ProfileOut,
+    ApiConfigIn,
+    ApiConfigOut,
 )
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="OpenProposal API", version="4.0.0")
+app = FastAPI(title="OpenProposal API", version="5.0.0")
 
 origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
 app.add_middleware(
@@ -34,12 +38,87 @@ app.add_middleware(
     allow_methods=["*"], allow_headers=["*"],
 )
 
-proposal_agent = build_proposal_agent()
-
 
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/api/providers")
+def list_providers():
+    """Lets the frontend render the dropdown without hardcoding provider names."""
+    return {
+        key: {"label": v["label"], "default_model": v["default_model"], "needs_base_url": v["base_url"] is None}
+        for key, v in PROVIDERS.items()
+    }
+
+
+# ---------------------------------------------------------------------------
+# BYOK settings
+# ---------------------------------------------------------------------------
+
+@app.get("/api/settings", response_model=ApiConfigOut)
+def get_api_config(user: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)):
+    profile = db.query(Profile).filter(Profile.user_id == user.id).first()
+    if not profile or not profile.api_key_encrypted:
+        return ApiConfigOut(has_key=False)
+    return ApiConfigOut(
+        provider=profile.api_provider,
+        model=profile.api_model,
+        custom_base_url=profile.api_custom_base_url,
+        has_key=True,
+    )
+
+
+@app.put("/api/settings", response_model=ApiConfigOut)
+def save_api_config(
+    req: ApiConfigIn, user: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    if req.provider not in PROVIDERS:
+        raise HTTPException(400, f"Unknown provider: {req.provider}")
+    if req.provider == "custom" and not req.custom_base_url:
+        raise HTTPException(400, "custom_base_url is required for a custom provider.")
+
+    profile = db.query(Profile).filter(Profile.user_id == user.id).first()
+    if not profile:
+        profile = Profile(user_id=user.id)
+        db.add(profile)
+
+    profile.api_provider = req.provider
+    profile.api_key_encrypted = encrypt(req.api_key)
+    profile.api_model = req.model
+    profile.api_custom_base_url = req.custom_base_url if req.provider == "custom" else None
+
+    db.commit()
+    db.refresh(profile)
+    return ApiConfigOut(provider=profile.api_provider, model=profile.api_model, custom_base_url=profile.api_custom_base_url, has_key=True)
+
+
+@app.delete("/api/settings")
+def delete_api_config(user: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)):
+    profile = db.query(Profile).filter(Profile.user_id == user.id).first()
+    if profile:
+        profile.api_provider = None
+        profile.api_key_encrypted = None
+        profile.api_model = None
+        profile.api_custom_base_url = None
+        db.commit()
+    return {"status": "cleared"}
+
+
+def _get_user_agent(profile: Optional[Profile]):
+    if not profile or not profile.api_key_encrypted:
+        raise HTTPException(
+            400,
+            "No API key configured. Add your API key in Settings before generating proposals.",
+        )
+    api_key = decrypt(profile.api_key_encrypted)
+    return build_proposal_agent(
+        provider=profile.api_provider,
+        api_key=api_key,
+        model=profile.api_model,
+        custom_base_url=profile.api_custom_base_url,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -167,10 +246,8 @@ def _profile_to_prompt_text(profile: Optional[Profile]) -> Optional[str]:
 async def generate_proposal(
     req: GenerateRequest, user: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)
 ):
-    if not os.getenv("OPENROUTER_API_KEY"):
-        raise HTTPException(500, "OPENROUTER_API_KEY is not configured on the server.")
-
     profile = db.query(Profile).filter(Profile.user_id == user.id).first()
+    proposal_agent = _get_user_agent(profile)
 
     if req.conversation_id:
         conv = (
@@ -210,7 +287,7 @@ async def generate_proposal(
     try:
         result = await Runner.run(proposal_agent, "\n\n".join(prompt_parts))
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(502, f"Agent run failed: {exc}") from exc
+        raise HTTPException(502, f"Agent run failed - check your API key and model in Settings: {exc}") from exc
 
     proposal_text = result.final_output.strip()
     db.add(Message(conversation_id=conv.id, role="assistant", content=proposal_text))
@@ -223,8 +300,8 @@ async def generate_proposal(
 async def refine_proposal(
     req: RefineRequest, user: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)
 ):
-    if not os.getenv("OPENROUTER_API_KEY"):
-        raise HTTPException(500, "OPENROUTER_API_KEY is not configured on the server.")
+    profile = db.query(Profile).filter(Profile.user_id == user.id).first()
+    proposal_agent = _get_user_agent(profile)
 
     conv = (
         db.query(Conversation)
@@ -252,7 +329,7 @@ async def refine_proposal(
     try:
         result = await Runner.run(proposal_agent, prompt)
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(502, f"Agent run failed: {exc}") from exc
+        raise HTTPException(502, f"Agent run failed - check your API key and model in Settings: {exc}") from exc
 
     proposal_text = result.final_output.strip()
     db.add(Message(conversation_id=conv.id, role="assistant", content=proposal_text))

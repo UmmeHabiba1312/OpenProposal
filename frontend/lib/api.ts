@@ -56,7 +56,28 @@ saveProfile: async (payload: {
     headers: { "Content-Type": "application/json", ...(await authHeaders()) },
     body: JSON.stringify(payload),
   }).then(handle),
-  
+
+  getSettings: async () =>
+  fetch(`${API_URL}/api/settings`, { headers: await authHeaders() }).then(handle),
+
+saveSettings: async (payload: {
+  provider: string;
+  api_key: string;
+  model: string;
+  custom_base_url?: string;
+}) =>
+  fetch(`${API_URL}/api/settings`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...(await authHeaders()) },
+    body: JSON.stringify(payload),
+  }).then(handle),
+
+deleteSettings: async () =>
+  fetch(`${API_URL}/api/settings`, { method: "DELETE", headers: await authHeaders() }).then(handle),
+
+listProviders: async () =>
+  fetch(`${API_URL}/api/providers`).then(handle),
+
   generate: async (payload: any) =>
     fetch(`${API_URL}/api/generate`, {
       method: "POST",
