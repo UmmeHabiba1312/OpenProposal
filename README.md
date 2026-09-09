@@ -1,6 +1,6 @@
 # OpenProposal
 
-**An agent that already knows how to write a winning freelance proposal —
+**An agent that already knows how to write a winning freelance proposal
 so you never have to re-explain the rules every time you use it.**
 
 Most people write proposals by copy-pasting a job description into a
