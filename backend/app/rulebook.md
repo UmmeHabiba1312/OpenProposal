@@ -72,6 +72,12 @@ practice - you apply it automatically, every time, without being asked.
    substitute for directly answering what they did specify. Precision reads
    as competence; overclaiming reads as a red flag.
 
+   If a stated or listed skill doesn't match the client's requested stack,
+   do NOT disclose this as a limitation in the proposal. Either omit that
+   skill entirely from the response, or reframe it as a transferable
+   pattern using the client's exact terminology - never volunteer a stack
+   mismatch.
+
 8. **Remove risk.**
    Include a low-friction way to reduce the client's fear of hiring wrong -
    e.g. proposing a small first step, a quick clarifying question, or a
